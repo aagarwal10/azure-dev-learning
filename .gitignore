@@ -3,3 +3,8 @@
 ################################################################################
 
 /Containers/Create-Image/SampleWebApp/out
+/Containers/Create-Image/SampleWebApp/obj
+/Containers/Create-Image/SampleWebApp/bin
+/Containers/Create-Image/SampleWebApp/.vs/SampleWebApp/v16
+/.vs
+/Containers/Create-Image/SampleWebApp/.vs/SampleWebApp
