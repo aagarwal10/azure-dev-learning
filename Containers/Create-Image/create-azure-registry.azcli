@@ -1,0 +1,10 @@
+az login
+
+$resourceGroup = "test-acr"
+
+az group create --name $resourceGroup --location centralus
+
+$registryName =  "testacr19"
+
+# create a new Azure container registry
+az acr create --resource-group $resourceGroup --name $registryName --sku Basic --admin-enabled true

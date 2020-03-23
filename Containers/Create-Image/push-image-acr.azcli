@@ -1,0 +1,27 @@
+$registryName =  "testacr19"
+
+# log in to our container registry
+az acr login --name $registryName
+
+# get the login server name
+$loginServer = az acr show -n $registryName --query loginServer --output tsv
+
+docker image ls
+
+# give it a new tag
+docker tag samplewebapp:v2 $loginServer/samplewebapp:v2
+
+# push the image to our Azure Container Registry
+docker push $loginServer/samplewebapp:v2
+
+# view the images in our ACR
+az acr repository list -n $registryName -o table
+
+# view the tags for the samplewebapp repository
+az acr repository show-tags -n $registryName --repository samplewebapp -o table
+
+# delete a repository from the 
+az acr repository delete -n $registryName -t samplewebapp:v2
+
+# to delete everything we made in this demo
+az group delete -n $resourceGroup
