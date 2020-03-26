@@ -1,0 +1,27 @@
+az login
+
+$resourceGroup = "test-aci-instances"
+
+az group create --name $resourceGroup --location centralus
+
+$containerGroupName = "test-aci-name"
+
+# create a docker container using the ghost image from dockerhub
+az container create -g $resourceGroup -n $containerGroupName `
+    --image ghost `
+    --ports 2368 `
+    --ip-address public `
+    --dns-name-label ghostaci 
+
+# see details about this container
+az container show --name $containerGroupName --resource-group $resourceGroup
+
+# test it out
+http://ghostaci.centralus.azurecontainer.io:2368
+http://ghostaci.centralus.azurecontainer.io:2368/admin
+
+# view the logs
+az container logs --name $containerGroupName --resource-group $resourceGroup
+
+# clean up everything
+az group delete --name $resourceGroup --yes
