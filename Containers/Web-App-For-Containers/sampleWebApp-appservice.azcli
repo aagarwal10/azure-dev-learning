@@ -1,0 +1,33 @@
+az login
+
+# create a resource group to use
+$resourceGroup = "test-webapp-service"
+$location = "centralus"
+
+az group create -n $resourceGroup -l $location
+
+$planName = "sampleWebAppPlan"
+
+# create an app service plan to host
+az appservice plan create --name $planName --resource-group $resourceGroup `
+                          --location $location --is-linux --sku S1
+
+$registryName =  "testacr19"
+
+$appName = "sampleWebApp-61521"
+
+# create a new webapp based on image from Azure Container Registry
+az webapp create --resource-group $resourceGroup --plan $planName `
+                 --name $appName -i $loginServer/samplewebapp:v2 
+
+# configure settings
+az webapp config appsettings set `
+    -n $appName -g $resourceGroup --settings `
+    SampleWebApp_Environment=UAT 
+
+# launch in a browser
+$site = az webapp show -n $appName -g $resourceGroup --query "defaultHostName" -o tsv
+Start-Process https://$site
+
+# scale up app service
+az appservice plan update --name $planName --resource-group $resourceGroup --number-of-workers 3
