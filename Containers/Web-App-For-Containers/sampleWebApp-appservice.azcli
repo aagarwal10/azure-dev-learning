@@ -14,6 +14,9 @@ az appservice plan create --name $planName --resource-group $resourceGroup `
 
 $registryName =  "testacr19"
 
+# get the login server name
+$loginServer = az acr show -n $registryName --query loginServer --output tsv
+
 $appName = "sampleWebApp-61521"
 
 # create a new webapp based on image from Azure Container Registry
