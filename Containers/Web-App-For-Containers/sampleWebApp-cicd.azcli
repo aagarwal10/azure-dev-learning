@@ -1,0 +1,71 @@
+az login
+
+# create a resource group to use
+$resourceGroup = "test-webapp-cicd"
+$location = "centralus"
+
+az group create -n $resourceGroup -l $location
+
+$planName = "cicd-sampleWebAppPlan"
+
+# create an app service plan to host
+az appservice plan create --name $planName --resource-group $resourceGroup `
+                          --location $location --is-linux --sku S1
+
+$registryName =  "testacr19"
+
+# get the login server name
+$loginServer = az acr show -n $registryName --query loginServer --output tsv
+
+$appName = "sampleWebApp-7352"
+
+# Create a new webapp based on image from Azure Container Registry
+# Since Web App for Container feature in az cli is still buggy. 
+# Note Use following Link and Azure Portal to create Web App from Azure Container Registry
+# https://docs.microsoft.com/en-us/learn/modules/deploy-run-container-app-service/5-exercise-deploy-web-app?pivots=csharp
+
+# az webapp create --resource-group $resourceGroup --plan $planName `
+#                  --name $appName -i $loginServer/samplewebapp:latest 
+
+# create a staging slot (cloning from production slot's settings)
+az webapp deployment slot create --name $appName --resource-group $resourceGroup `
+                                 -s staging --configuration-source $appName
+
+
+# $site = az webapp show -n $appName -g $resourceGroup -s staging --query "defaultHostName" -o tsv
+
+# Since Web App for Container feature in az cli is still buggy. 
+# Note Use following Link and Azure Portal to create Web App from Azure Container Registry
+#https://docs.microsoft.com/en-us/learn/modules/deploy-run-container-app-service/7-exercise-update-web-app?pivots=csharp
+
+# enable CD for the staging slot
+# az webapp deployment container config -g $resourceGroup -n $appName `
+#                                       -s staging --enable-cd true
+
+# get the webhook for staging slot
+# $cicdUrl = az webapp deployment container show-cd-url -s staging `
+#                      -n $appName -g $resourceGroup --query CI_CD_URL -o tsv
+
+# az acr webhook create --registry $registryName --name "acrWebHookMyCICD" `
+#                       --actions push --uri $cicdUrl
+
+
+# give it a new tag
+docker tag samplewebapp:v3 $loginServer/samplewebapp:v3
+
+# log in to our container registry
+az acr login --name $registryName
+
+# push the image to our Azure Container Registry
+docker push $loginServer/samplewebapp:v3
+
+# perform a slot swap
+az webapp deployment slot swap -g $resourceGroup -n $appName `
+                               --slot staging --target-slot production
+
+# clean up
+az group delete --name $resourceGroup --yes 
+
+# delete the webhook
+az acr webhook list --registry $registryName
+az acr webhook delete --registry $acrName --name ?? #Find the name of the webhook from az acr webhook list
