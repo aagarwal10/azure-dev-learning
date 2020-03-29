@@ -1,0 +1,114 @@
+az login
+
+$resourceGroup = "test-aksDemo"
+
+az group create --name $resourceGroup --location centralus
+
+$clusterName = "Abhi-AKS"
+#----------------------------------------------------------------------
+
+
+# Part-1 -- Create our AKS Cluster & Configure Kubectl configured to communicate with AKS
+az aks create -g $resourceGroup -n $clusterName --node-count 1 --generate-ssh-keys
+
+#to check if AKS Cluster created correctly
+az aks show -g $resourceGroup -n $clusterName
+
+# check we have kubectl (should have if we've installed docker for windows)
+kubectl version --short
+
+# if not install the kubectl CLI (needs to be done from Administrator prompt)
+# ends up putting it in on Windows C:\\Program Files (x86)\\kubectl.exe
+### az aks install-cli -- is another way to get kubectl installed if Docker Desktop is not installed locally
+# we'll work round this by storing path to kubectl in a variable
+### $env:Path = $env:Path + ";C:\Program Files (x86)"
+
+# Get credentials and set up for kubectl to use
+az aks get-credentials -g $resourceGroup -n $clusterName
+
+# Check we're connected
+kubectl get nodes
+# example output:
+#NAME                       STATUS    ROLES     AGE       VERSION
+#aks-nodepool1-29826014-0   Ready     agent     59m       v1.7.7
+#----------------------------------------------------------------------------------
+
+# Part-2 -- Running an app on AKS
+# https://github.com/Azure-Samples/azure-voting-app-redis
+
+# deploy the app
+kubectl apply -f sample-app.yaml
+# example output:
+# deployment.apps "samplebackend" created
+# service "samplebackend" created
+# deployment.apps "samplewebapp" created
+# service "samplewebapp" created
+
+# find out where it is
+kubectl get service samplewebapp --watch
+# example output:
+# NAME           TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+# samplewebapp   LoadBalancer   10.0.124.252   13.86.62.81   8080:30783/TCP   2m38s
+
+# launch app in browser (use IP address from previous command)
+Start-Process http://13.86.62.81:8080
+
+# see the status of our pods
+kubectl get pod
+# NAME                             READY   STATUS    RESTARTS   AGE
+# samplebackend-65c75c6798-q6gpt   1/1     Running   0          5m45s
+# samplewebapp-8d7b84675-cqttl     1/1     Running   0          5m45s
+
+# view logs from a pod
+# kubectl logs <<podname>>
+
+#----------------------------------------------------------------------------------
+
+# PART 3 - SCALING
+
+# we can scale the cluster
+az aks scale -g $resourceGroup -n $clusterName --node-count 3
+
+# see the updated nodes
+kubectl get nodes
+
+# deploy another application on this same cluster -- example vote app
+kubectl apply -f .\example-vote.yml
+
+# watch for the public ip addresses of the vote and result services
+kubectl get service --watch
+
+# Vote app Uri: <External-IP>:5000
+# Result app Uri: <External-IP>:5001
+
+# change the vote deployment to 3 replicas with eggs and bacon
+kubectl apply -f .\example-vote-v2.yml
+
+# Get list of full deployment status
+kubectl get deployment
+
+# Get vote app deployment status
+kubectl get deployment vote
+
+# run kubernetes dashboard
+az aks browse -g $resourceGroup -n $clusterName
+
+# n.b. if the dashboard shows errors, you may need this fix:
+# https://pascalnaber.wordpress.com/2018/06/17/access-dashboard-on-aks-with-rbac-enabled/
+kubectl create clusterrolebinding kubernetes-dashboard -n kube-system --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
+
+### BONUS STEPS
+# how to directly scale to three replicas of our front end container
+kubectl scale --replicas=3 deployment/samplewebapp
+
+# how to upgrade a container directly
+kubectl set image deployment samplewebapp samplewebapp=markheath/samplewebapp:v2
+
+# delete an app deployed with kubectl apply
+kubectl delete -f .\example-vote-v2.yml
+
+# deploy a second instance to another namespace
+kubectl create namespace staging
+
+kubectl apply -f .\example-vote.yml -n staging
+kubectl get service -n staging
