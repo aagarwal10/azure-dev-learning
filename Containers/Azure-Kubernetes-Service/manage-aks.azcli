@@ -112,3 +112,6 @@ kubectl create namespace staging
 
 kubectl apply -f .\example-vote.yml -n staging
 kubectl get service -n staging
+
+# Clean up
+az group delete -n $resourceGroup --yes --no-wait
