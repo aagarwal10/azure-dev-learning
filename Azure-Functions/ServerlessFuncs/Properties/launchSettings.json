@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "ServerlessFuncs": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "httpPort": 31438,
+      "useSSL": false
+    }
+  }
+}
